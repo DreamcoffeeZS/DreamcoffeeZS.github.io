@@ -141,32 +141,6 @@
   </entry>
   
   <entry>
-    <title>iOS开发中的CPU架构问题</title>
-    <link href="http://yoursite.com/2018/02/10/%E6%B5%8B%E8%AF%95%E6%96%87%E7%AB%A0/"/>
-    <id>http://yoursite.com/2018/02/10/测试文章/</id>
-    <published>2018-02-10T09:15:04.000Z</published>
-    <updated>2019-04-16T15:22:07.282Z</updated>
-    
-    <content type="html"><![CDATA[<p>首先，之所以提到CPU架构的问题，其实是因为我们iOS开发使用的静态库与动态库与之紧密相连。每一个开发的App都要运行在模拟器或者真机上，在编译的时候，Xcode需要去分析当前运行平台的CPU架构，然后确定所使用的静态库是否支持这个CPU架构。如果不支持就会报错。<br><a id="more"></a></p><h1 id="一、什么是CPU架构"><a href="#一、什么是CPU架构" class="headerlink" title="一、什么是CPU架构"></a>一、什么是CPU架构</h1><p>“CPU架构是CPU厂商给属于同一系列的CPU产品定的一个规范，主要目的是为了区分不同类型CPU的重要标示。目前市面上的CPU分类主要分有两大阵营，一个是intel、AMD为首的复杂指令集CPU，另一个是以IBM、ARM为首的精简指令集CPU。两个不同品牌的CPU，其产品的架构也不相同，例如，Intel、AMD的CPU是X86架构的，而IBM公司的CPU是PowerPC架构，ARM公司是ARM架构”（摘自百度）<br>通常，我们知道电脑的CPU架构有X86和X64等，但是手机的主流CPU架构是ARM架构，因为采用ARM架构的CPU是一种微处理器，这种处理器功耗低，体积小，更适合手机使用，iPhone的CPU也是如此。<br><img src="../images/ReactiveCocoa/函数响应式编程.png" alt></p><h1 id="二、iPhone移动设备默认指令集"><a href="#二、iPhone移动设备默认指令集" class="headerlink" title="二、iPhone移动设备默认指令集"></a>二、iPhone移动设备默认指令集</h1><p>那么，总结iPhone设备默认指令集的使用情况如下：<br><img src="http://upload-images.jianshu.io/upload_images/1244124-664cd726a222f057.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="屏幕快照 2016-11-08 下午1.57.51.png"></p><h1 id="三、有关指令集使用特点"><a href="#三、有关指令集使用特点" class="headerlink" title="三、有关指令集使用特点"></a>三、有关指令集使用特点</h1><ol><li>上述arm处理器指令集，在原则上它们都是向下兼容的。比如iPhone6s的CPU默认指令集是arm64,但是也同时支持armv7s等以前版本的指令集，只是效率变低了而已。</li><li>xcode模拟器其实是在电脑上的，所以iOS模拟器并没有使用arm指令集。它编译运行使用的是x86指令集(或者i386)。而在真机上使用的才是arm类型的指令集。</li><li>在Xcode中设置二进制包所支持的指令集，对于编译后的二进制包的大小影响显著，设置支持的指令集个数越少，安装包也越小。</li></ol><h1 id="四、Xcode中关于指令集的配置与使用"><a href="#四、Xcode中关于指令集的配置与使用" class="headerlink" title="四、Xcode中关于指令集的配置与使用"></a>四、Xcode中关于指令集的配置与使用</h1><p>具体在Xcode中的使用，我们在Xcode中选择将要设置的target，然后打开build setting, 可以看到有关指令集设置的Architectures选项。</p><p><img src="http://upload-images.jianshu.io/upload_images/1244124-3dbf57149752a2ae.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="屏幕快照 2016-11-08 下午1.59.51.png"><br>在这里的关键设置有三个，可以通过这里设置Xcode生成二进制包的指令集</p><h2 id="1-Architectures"><a href="#1-Architectures" class="headerlink" title="1.Architectures:"></a>1.Architectures:</h2><p>作用：设置工程被编译后将支持哪些指令集，支持指令集是通过编译生成对应的二进制数据包实现的。<br>特点：设置支持的指令集数据越多，编译出的二进制包包含的指令集代码越多，这样就会使最后编译的包很大。</p><h2 id="2-valid-Architectures："><a href="#2-valid-Architectures：" class="headerlink" title="2.valid Architectures："></a>2.valid Architectures：</h2><p>作用：设置可能支持的指令集，这里的指令集选项和Architectures列表中指令集选项的交集，将决定最后Xcode生成二进制包所支持的指令集。<br>举例：Architectures支持armv7, Valid Architecture支持armv7、armv7s、armv64，那么Xcode只会生成一个armv7指令集的二进制包。</p><h2 id="3-build-Active-Architecture-only"><a href="#3-build-Active-Architecture-only" class="headerlink" title="3.build Active Architecture only"></a>3.build Active Architecture only</h2><p>作用：设置是否只编译当前使用设备所对应的arm指令集。也就是说当该项设置为YES的时候，上述规则(Architectures和valid Architectures交集决定二进制包所支持指令集)将被打破。<br>举列：设置该选项是YES,并且连接一个armv7指令集设备，无论前面两项如何设置，Xcode最终生成armv7指令集的二进制包。不过设置为YES生效有个前提条件就是，Xcode必须成功连接了调试的设备。</p><p>一般的情况下，build Active Architecture only选项默认在Debug模式下是YES, Release模式下是NO，但是我们在开发的时候，有时候也会遇到一些第三方文件找不到路径的问题，这时要求我们设置Debug模式下也为NO。</p><h1 id="五、遇到的问题"><a href="#五、遇到的问题" class="headerlink" title="五、遇到的问题"></a>五、遇到的问题</h1><p>在这里记录一个在开发中遇到的问题。曾经在使用CocoaPods管理第三方的时候，遇到了“library not found for -lXXX”的错误，当时使用了Masonry的库。Xcode报错如下：<br><img src="http://upload-images.jianshu.io/upload_images/1244124-7aa56c2371dbf81d.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="屏幕快照 2016-11-08 下午2.25.33.png"><br>其实这是因为CocoaPods在引入第三方类库的时候，默认build Active Architecture only在Debug模式下是YES导致的，修改为NO就可以了。</p>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;首先，之所以提到CPU架构的问题，其实是因为我们iOS开发使用的静态库与动态库与之紧密相连。每一个开发的App都要运行在模拟器或者真机上，在编译的时候，Xcode需要去分析当前运行平台的CPU架构，然后确定所使用的静态库是否支持这个CPU架构。如果不支持就会报错。&lt;br&gt;
-    
-    </summary>
-    
-      <category term="iOS" scheme="http://yoursite.com/categories/iOS/"/>
-    
-    
-      <category term="移动开发" scheme="http://yoursite.com/tags/%E7%A7%BB%E5%8A%A8%E5%BC%80%E5%8F%91/"/>
-    
-      <category term="架构" scheme="http://yoursite.com/tags/%E6%9E%B6%E6%9E%84/"/>
-    
-      <category term="CPU" scheme="http://yoursite.com/tags/CPU/"/>
-    
-  </entry>
-  
-  <entry>
     <title>Charles抓包HTTP、HTTPS</title>
     <link href="http://yoursite.com/2018/02/10/Charles%E6%8A%93%E5%8C%85HTTP%E3%80%81HTTPS/"/>
     <id>http://yoursite.com/2018/02/10/Charles抓包HTTP、HTTPS/</id>
