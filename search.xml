@@ -62,6 +62,19 @@
       </tags>
   </entry>
   <entry>
+    <title><![CDATA[iOS开发中的CPU架构问题]]></title>
+    <url>%2F2018%2F02%2F10%2F%E6%B5%8B%E8%AF%95%E6%96%87%E7%AB%A0%2F</url>
+    <content type="text"><![CDATA[首先，之所以提到CPU架构的问题，其实是因为我们iOS开发使用的静态库与动态库与之紧密相连。每一个开发的App都要运行在模拟器或者真机上，在编译的时候，Xcode需要去分析当前运行平台的CPU架构，然后确定所使用的静态库是否支持这个CPU架构。如果不支持就会报错。 一、什么是CPU架构“CPU架构是CPU厂商给属于同一系列的CPU产品定的一个规范，主要目的是为了区分不同类型CPU的重要标示。目前市面上的CPU分类主要分有两大阵营，一个是intel、AMD为首的复杂指令集CPU，另一个是以IBM、ARM为首的精简指令集CPU。两个不同品牌的CPU，其产品的架构也不相同，例如，Intel、AMD的CPU是X86架构的，而IBM公司的CPU是PowerPC架构，ARM公司是ARM架构”（摘自百度）通常，我们知道电脑的CPU架构有X86和X64等，但是手机的主流CPU架构是ARM架构，因为采用ARM架构的CPU是一种微处理器，这种处理器功耗低，体积小，更适合手机使用，iPhone的CPU也是如此。 二、iPhone移动设备默认指令集那么，总结iPhone设备默认指令集的使用情况如下： 三、有关指令集使用特点 上述arm处理器指令集，在原则上它们都是向下兼容的。比如iPhone6s的CPU默认指令集是arm64,但是也同时支持armv7s等以前版本的指令集，只是效率变低了而已。 xcode模拟器其实是在电脑上的，所以iOS模拟器并没有使用arm指令集。它编译运行使用的是x86指令集(或者i386)。而在真机上使用的才是arm类型的指令集。 在Xcode中设置二进制包所支持的指令集，对于编译后的二进制包的大小影响显著，设置支持的指令集个数越少，安装包也越小。 四、Xcode中关于指令集的配置与使用具体在Xcode中的使用，我们在Xcode中选择将要设置的target，然后打开build setting, 可以看到有关指令集设置的Architectures选项。 在这里的关键设置有三个，可以通过这里设置Xcode生成二进制包的指令集 1.Architectures:作用：设置工程被编译后将支持哪些指令集，支持指令集是通过编译生成对应的二进制数据包实现的。特点：设置支持的指令集数据越多，编译出的二进制包包含的指令集代码越多，这样就会使最后编译的包很大。 2.valid Architectures：作用：设置可能支持的指令集，这里的指令集选项和Architectures列表中指令集选项的交集，将决定最后Xcode生成二进制包所支持的指令集。举例：Architectures支持armv7, Valid Architecture支持armv7、armv7s、armv64，那么Xcode只会生成一个armv7指令集的二进制包。 3.build Active Architecture only作用：设置是否只编译当前使用设备所对应的arm指令集。也就是说当该项设置为YES的时候，上述规则(Architectures和valid Architectures交集决定二进制包所支持指令集)将被打破。举列：设置该选项是YES,并且连接一个armv7指令集设备，无论前面两项如何设置，Xcode最终生成armv7指令集的二进制包。不过设置为YES生效有个前提条件就是，Xcode必须成功连接了调试的设备。 一般的情况下，build Active Architecture only选项默认在Debug模式下是YES, Release模式下是NO，但是我们在开发的时候，有时候也会遇到一些第三方文件找不到路径的问题，这时要求我们设置Debug模式下也为NO。 五、遇到的问题在这里记录一个在开发中遇到的问题。曾经在使用CocoaPods管理第三方的时候，遇到了“library not found for -lXXX”的错误，当时使用了Masonry的库。Xcode报错如下：其实这是因为CocoaPods在引入第三方类库的时候，默认build Active Architecture only在Debug模式下是YES导致的，修改为NO就可以了。]]></content>
+      <categories>
+        <category>iOS</category>
+      </categories>
+      <tags>
+        <tag>移动开发</tag>
+        <tag>架构</tag>
+        <tag>CPU</tag>
+      </tags>
+  </entry>
+  <entry>
     <title><![CDATA[Charles抓包HTTP、HTTPS]]></title>
     <url>%2F2018%2F02%2F10%2FCharles%E6%8A%93%E5%8C%85HTTP%E3%80%81HTTPS%2F</url>
     <content type="text"><![CDATA[抓包分析数据在移动开发中十分重要，可以帮助我们更快的了解数据构成，提高开发效率。但是在苹果要求上线的App必须使用HTTS之后，HTTPS数据包的抓取分析较为麻烦，在此总结了在mac上使用Charles抓包的详细步骤。 首先我们下载最先版本的Charles官网下载：https://www.charlesproxy.com/download/免费版下载：http://xclient.info/search/s/charles/ 一、开启网络请求记录，设置系统网络代理安装Charles之后，我们选择Proxy-&gt;Start Recording，开始记录网络请求，然后勾选MacOS Proxy(和其他的代理对象如：Mozilla Firefox Proxy火狐浏览器）,将系统代理设置通过Charles Proxy。 此时打开系统偏好设置-&gt;网络-&gt;高级，我们可以看到本机HTTP和HTTPS请求被代理到127.0.0.1，端口号是8888。至此，我们已经完成了基本的网路请求设置，通过此Mac发起的HTTP请求，我们都可以通过Charles分析。 注：在Charles关闭的时候，这里的web代理和安全web代理也会变成无勾选状态。保证无代理时，Mac也能够访问网络。 二、iPhone数据包的抓取1.打开Charles的代理功能为了使用Charles抓取到iPhone设备的数据包，我们首先要打开Charles的代理功能。选择Proxy -&gt;Proxy Setting，设置Port:8888，选择Enable TransParent HTTP Proxying。 2.获取本机电脑IP接下来我们要将手机的网络代理IP设置为Charles运行所在的电脑IP，获取本机电脑的IP方法如下：方法一：Mac电脑上使用Control +空格键，并输入Terminal 可以进入控制台，然后键入 ifconfig en0命令 ，我们查看到当前电脑的IP地址。 方法二：通过Charles查看本机的IP地址：打开Charles -&gt;Help-&gt;Local IP Address 3. 设置手机网络代理IP我们依次打开iphone “设置-&gt;无线局域网”，点击当前连接Wifi右侧的详情按钮。这里显示了当前连接Wifi的基本信息，我们需要将这里底部的HTTP代理改为手动，然后填上Charles运行所在电脑的IP和端口号8888。如图： 此时，iPhone的网络代理就设置完成了，手机上请求将会被代理到mac上，我们可以很方便的通过Charles查看到手机应用发起的网络请求数据包。 三、抓取HTTPS数据包相对于HTTP类的网络请求，HTTPS请求更加安全，这也使得抓取这类的数据包进行分析要麻烦一些。抓取HTTPS请求数据包进行分析，关键的步骤如下： 1.安装Charles根证书打开charles,依次点击Help -&gt; SSL Proxying -&gt; Install Charles Root Certificate，安装根证书 2.设置证书信任在安装证书之后，我们查看钥匙串。选择所有项目，我们会看到一个带有红叉标记不被信任的Charles证书。Charles证书默认是不信任的，需要我们手动设置。右键-&gt;显示简介-&gt;点击信任，我们如图设置始终信任。 3.设置 SSL 代理打开charles应用，选择Proxy-&gt;SSL Proxying Settings,我们在这里设置SSL Proxy,点击面板上的add，如下图： 在这里我们设置主机地址Host是*,使用通配符表示检测所有网络请求。然后设置端口号是443 4.iOS设备安装证书最后我们还需要在iOS设备上安装证书。点击 Charles 的顶部菜单，选择 Help –&gt; SSL Proxying–&gt; Install Charles Root Certificate on a Mobile Device or Remote Browser，然后就可以看到 Charles 显示如下弹窗： 然后我们需要打开safari ,输入网址： http://charlesproxy.com/getssl，这时候会弹出安装证书的界面，我们点击安装证书，如图：目前为止，我们就完成了Charles抓取HTTPS数据包的所有设置了。查看Charles,我们可以看到数据包的内容了。 5.失败请求的处理iOS10.3之后，在上述设置完成之后，所有的https请求都会失败。提示错误：Failure SSLHandshake: Received fatal alert: unknown_ca 和You may need to configure your browser or application to trust the Charles Root Certificate.原因：charles的根证书虽然已经在安装列表中,但在iOS 10.3之后,安装新的自定义证书默认是不受信任的。如果要信任已安装的自定义证书,需要手动打开开关以信任证书。解决：设置-&gt;通用-&gt;关于本机-&gt;证书信任设置-&gt; 找到charles proxy custom root certificate然后信任该证书即可. 模拟器也是这样处理。 四、使用Charles遇到的问题我在使用Charles抓包https之后，在使用applicationLoader上传ipa包的时候遇到了下面的问题：Communication error. Please use diagnostic mode to check connectivity. You need to have outbound access to TCP port 443. 解决：将charles关闭，然后再上传ipa文件。至于原因我也没弄明白，如果哪位朋友知道也可以告诉我一下。]]></content>
@@ -69,8 +82,8 @@
         <category>开发工具</category>
       </categories>
       <tags>
-        <tag>移动开发</tag>
         <tag>开发工具</tag>
+        <tag>移动开发</tag>
         <tag>网络</tag>
         <tag>抓包</tag>
       </tags>
